@@ -28,6 +28,31 @@
               }
             ]
             // "miDebuggerPath": "/usr/bin/gdb"
+          },
+          {
+            "name": "Debug crash",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/.venv/bin/python",
+            "args": ["test_crash.py"],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+              {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+              },
+              {
+                "description": "Enable Python tracebacks",
+                "text": "add-auto-load-safe-path ${workspaceFolder}",
+                "ignoreFailures": true
+              }
+            ]
+            // "miDebuggerPath": "/usr/bin/gdb"
           }
     ]
 }
