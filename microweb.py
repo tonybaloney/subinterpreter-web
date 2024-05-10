@@ -1,5 +1,5 @@
 """
-Testing on CPython3.13a1+
+Testing on CPython3.13b1+
 
 Requires some recent patches from main.
 pip install hypercorn
@@ -8,13 +8,14 @@ Have successfully run the following apps:
 - fastapi==0.99.0
 - Flask
 """
-import _xxsubinterpreters as interpreters
-import _xxinterpchannels as channels
+import _interpreters as interpreters
+import _interpchannels as channels
 import threading
 from hypercorn.config import Config, Sockets
 
 import logging
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +39,10 @@ from hypercorn.asyncio.run import asyncio_worker
 from hypercorn.config import Config, Sockets
 import asyncio
 import threading
-import _xxinterpchannels as channels
+import _interpchannels as channels
+import logging
+
+logging.basicConfig(level=logging.INFO)
 from socket import socket
 import time
 shutdown_event = asyncio.Event()
@@ -95,10 +99,12 @@ class SubinterpreterWorker(threading.Thread):
                 'channel_id': self.channel,
             }
         )
+        interpreters.destroy(self.interp)
 
     def stop(self):
-        print("Sending stop signal to worker {}".format(self.worker_number))
+        logger.info("Sending stop signal to worker {}".format(self.worker_number))
         channels.send(self.channel, "stop")
+        interpreters.destroy(self.interp)
 
 
 if __name__ == "__main__":
@@ -122,7 +128,7 @@ if __name__ == "__main__":
     config.application_path = args.application
     config.workers = args.workers
     sockets = config.create_sockets()
-    logger.debug("Starting %s workers", args.workers)
+    logger.info("Starting %s workers", args.workers)
     threads = []
     for i in range(args.workers):
         t = SubinterpreterWorker(i, config, sockets)

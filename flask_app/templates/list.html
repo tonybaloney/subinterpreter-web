@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>Flask App</title>
+    </head>
+    <body>
+        <h1>Flask App</h1>
+        <h2>Users</h2>
+        <ul>
+            {% for user in users %}
+                <li>{{ user.name }}</li>
+                <p><a href="emailto:{{user.email}}">{{ user.email }}</a></p>
+                <p> {{user.birthday.strftime('%Y-%m-%d') }}</p>
+            {% endfor %}
+        </ul>
+    </body>
+</html>
