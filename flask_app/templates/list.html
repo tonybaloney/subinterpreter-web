@@ -5,12 +5,25 @@
     <body>
         <h1>Flask App</h1>
         <h2>Users</h2>
-        <ul>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Birthday</th>
+                    <th>Star Sign</th>
+                </tr>
+            </thead>
+            <tbody>
             {% for user in users %}
-                <li>{{ user.name }}</li>
-                <p><a href="emailto:{{user.email}}">{{ user.email }}</a></p>
-                <p> {{user.birthday.strftime('%Y-%m-%d') }}</p>
+            <tr>
+                <td>{{ user.name }}</td>
+                <td><a href="emailto:{{user.email}}">{{ user.email }}</a></td>
+                <td>{{user.birthday.strftime('%Y-%m-%d') }}</td>
+                <td>{{user.star_sign }}</td>
+            </tr>
             {% endfor %}
-        </ul>
+            </tbody>
+        </table>
     </body>
 </html>

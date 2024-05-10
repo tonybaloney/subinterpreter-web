@@ -33,8 +33,6 @@ WORKERS = 2
 """
 
 interpreter_worker = """
-import sys
-sys.path.append('experiments')
 from hypercorn.asyncio.run import asyncio_worker
 from hypercorn.config import Config, Sockets
 import asyncio
@@ -98,13 +96,11 @@ class SubinterpreterWorker(threading.Thread):
                 'workers': self.config.workers,
                 'channel_id': self.channel,
             }
-        )
-        interpreters.destroy(self.interp)
+        )        
 
     def stop(self):
         logger.info("Sending stop signal to worker {}".format(self.worker_number))
         channels.send(self.channel, "stop")
-        interpreters.destroy(self.interp)
 
 
 if __name__ == "__main__":
@@ -141,3 +137,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         for t in threads:
             t.stop()
+
+    # Bug: raises error about remaining sub interpreters after shutdown.
