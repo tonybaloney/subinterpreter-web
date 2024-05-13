@@ -1,58 +1,66 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch Microweb",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "microweb.py",
+      "console": "integratedTerminal",
+      "args": "flask_app_real:app --reload --verbose",
+    },
+    {
+      "name": "Debug Python.exe",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "args": ["microweb.py", "-w", "4", "flask_app_real:app"],
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "setupCommands": [
         {
-            "name": "Debug Python.exe",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/.venv/bin/python",
-            "args": ["microweb.py", "-w", "4", "flask_app.py"],
-            "stopAtEntry": true,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "setupCommands": [
-              {
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-              },
-              {
-                "description": "Enable Python tracebacks",
-                "text": "add-auto-load-safe-path ${workspaceFolder}",
-                "ignoreFailures": true
-              }
-            ]
-            // "miDebuggerPath": "/usr/bin/gdb"
-          },
-          {
-            "name": "Debug crash",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/.venv/bin/python",
-            "args": ["test_crash.py"],
-            "stopAtEntry": true,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "setupCommands": [
-              {
-                "description": "Enable pretty-printing for gdb",
-                "text": "-enable-pretty-printing",
-                "ignoreFailures": true
-              },
-              {
-                "description": "Enable Python tracebacks",
-                "text": "add-auto-load-safe-path ${workspaceFolder}",
-                "ignoreFailures": true
-              }
-            ]
-            // "miDebuggerPath": "/usr/bin/gdb"
-          }
-    ]
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Enable Python tracebacks",
+          "text": "add-auto-load-safe-path ${workspaceFolder}",
+          "ignoreFailures": true
+        }
+      ]
+      // "miDebuggerPath": "/usr/bin/gdb"
+    },
+    {
+      "name": "Debug crash",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "args": ["test_crash.py"],
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Enable Python tracebacks",
+          "text": "add-auto-load-safe-path ${workspaceFolder}",
+          "ignoreFailures": true
+        }
+      ]
+      // "miDebuggerPath": "/usr/bin/gdb"
+    }
+  ]
 }
