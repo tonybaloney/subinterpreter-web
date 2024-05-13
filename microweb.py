@@ -204,6 +204,7 @@ if __name__ == "__main__":
                         logger.debug("Detected changes, reloading workers")
                         for t in threads:
                             t.stop()
+                            t.join()
                         logger.debug("Finished reload cycle")
                         break
         else:
@@ -214,6 +215,7 @@ if __name__ == "__main__":
         for t in threads:
             logger.debug("Stopping worker {}".format(t.worker_number))
             t.stop()
+            t.join()
 
     # Todo: destroy interpreters on recycle/reload
     # Bug: raises error about remaining sub interpreters after shutdown.
