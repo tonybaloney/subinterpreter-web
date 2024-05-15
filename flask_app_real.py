@@ -13,7 +13,7 @@ app = Flask(__name__, template_folder="flask_app/templates")
 
 @app.route("/")
 def index():
-    return "Hello World 2!"
+    return "Hello World"
 
 
 def calculate_star_sign(user: User) -> tuple[User, str]:

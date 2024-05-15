@@ -15,7 +15,7 @@ import _interpchannels as channels
 import threading
 from hypercorn.config import Config, Sockets
 from hypercorn.utils import check_for_updates, files_to_watch, load_application
-
+from socket import dup
 import logging
 import os
 
@@ -38,48 +38,7 @@ WORKERS = os.cpu_count() or 2
     - log_level: int
 """
 
-worker_init = """
-from hypercorn.asyncio.run import asyncio_worker
-from hypercorn.config import Config, Sockets
-import asyncio
-import threading
-import _interpchannels as channels
-import logging
-
-logging.basicConfig(level=log_level)
-from socket import socket
-import time
-shutdown_event = asyncio.Event()
-shutdown_event.clear()
-
-def wait_for_signal():
-    while True:
-        msg = channels.recv(channel_id, default=None)
-        if msg == "stop":
-            logging.info("Received stop signal, shutting down worker {} ".format(worker_number))
-            shutdown_event.set()
-        else:
-            time.sleep(0.1)
-
-logging.info("Starting hypercorn worker {}".format({worker_number}))
-try:
-    _insecure_sockets = []
-    # Rehydrate the sockets list from the tuple
-    for s in insecure_sockets:
-        _insecure_sockets.append(socket(*s))
-    hypercorn_sockets = Sockets([], _insecure_sockets, [])
-
-    config = Config()
-    config.application_path = application_path
-    config.workers = workers
-    config.use_reloader = reload  # Doesn't really do anything here
-    config.debug = log_level == logging.DEBUG
-    thread = threading.Thread(target=wait_for_signal)
-    thread.start()
-except Exception as e:
-    logging.exception(e)
-
-"""
+worker_init = open('interpreter_worker.py', 'r').read()
 
 worker_run = """
 logging.debug("Starting asyncio worker in worker {}".format({worker_number}))
@@ -112,9 +71,7 @@ class SubinterpreterWorker(threading.Thread):
 
     def run(self):
         # Convert insecure sockets to a tuple of tuples because the Sockets type cannot be shared
-        insecure_sockets = []
-        for s in self.sockets.insecure_sockets:
-            insecure_sockets.append((int(s.family), int(s.type), s.proto, s.fileno()))
+        insecure_sockets = [(int(s.family), int(s.type), s.proto, dup(s.fileno())) for s in self.sockets.insecure_sockets]
         logger.debug("Starting worker {}, interpreter {}".format(self.worker_number, self.interp))
         interpreters.run_string(
             self.interp,
@@ -232,8 +189,8 @@ if __name__ == "__main__":
                         for t in threads:
                             t.stop(timeout=3.0)
                             t.join()
-                            # t.destroy()
-                            threads.remove(t)
+                            # t.destroy() # see below
+                        threads = []
 
                         sockets = config.create_sockets()
                         logger.debug("Finished reload cycle")
