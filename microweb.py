@@ -157,7 +157,7 @@ class SubinterpreterWorker(threading.Thread):
             raise ValueError("Cannot destroy a running interpreter")
         interpreters.destroy(self.interp)
 
-def fill_pool(threads, min_workers):
+def fill_pool(threads, config, min_workers, sockets):
     for i in range(min_workers - len(threads)):
         t = SubinterpreterWorker(
             i, config, sockets, reload=args.reload, log_level=logger.level
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     sockets = config.create_sockets()
     logger.debug("Starting %s workers", args.workers)
     threads: list[SubinterpreterWorker] = []
-    fill_pool(threads, args.workers)
+    fill_pool(threads, config, args.workers, sockets)
 
     try:
         if args.reload:
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                 logger.debug(f"Watching files for changes")
 
                 # Fill thread pool to correct size of the number of interpreters
-                fill_pool(threads, args.workers)
+                fill_pool(threads, config, args.workers, sockets)
 
                 while True:
                     updated = check_for_updates(files)
@@ -235,6 +235,7 @@ if __name__ == "__main__":
                             # t.destroy()
                             threads.remove(t)
 
+                        sockets = config.create_sockets()
                         logger.debug("Finished reload cycle")
                         break
         else:
