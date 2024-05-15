@@ -10,9 +10,11 @@ SEED_USERS = 1_000
 
 app = Flask(__name__, template_folder="flask_app/templates")
 
+
 @app.route("/")
 def index():
-    return "Hello World!"
+    return "Hello World 2!"
+
 
 def calculate_star_sign(user: User) -> tuple[User, str]:
     birthday = user.birthday
@@ -43,6 +45,7 @@ def calculate_star_sign(user: User) -> tuple[User, str]:
 
     return (user, sign)
 
+
 @app.route("/users")
 def user_list():
     users = User.select()
@@ -58,6 +61,7 @@ def user_list():
             enriched_users.append(user)
 
     return render_template("list.html", users=enriched_users)
+
 
 def seed():
     for _ in track(range(SEED_USERS), "seeding temporary database"):
