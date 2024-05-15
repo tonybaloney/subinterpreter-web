@@ -65,10 +65,14 @@ class SubinterpreterWorker(threading.Thread):
             }
         )        
 
-    def stop(self):
+    def stop(self, wait=True):
         logger.info("Sending stop signal to worker {}".format(self.worker_number))
-        channels.send(self.channel, "stop")
+        channels.send(self.channel, "stop", blocking=wait)
 
+    def destroy(self):
+        if interpreters.is_running(self.interp):
+            raise ValueError("Cannot destroy a running interpreter")
+        interpreters.destroy(self.interp)
 
 if __name__ == "__main__":
     import argparse
@@ -103,6 +107,9 @@ if __name__ == "__main__":
             t.join()
     except KeyboardInterrupt:
         for t in threads:
-            t.stop()
+            t.stop(wait=False)
+        for t in threads:
+            t.join()
+            # t.destroy()
 
     # Bug: raises error about remaining sub interpreters after shutdown.
