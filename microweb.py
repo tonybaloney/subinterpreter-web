@@ -56,31 +56,38 @@ def wait_for_signal():
     while True:
         msg = channels.recv(channel_id, default=None)
         if msg == "stop":
-            logging.info("Received stop signal, shutting down {} ".format(worker_number))
+            logging.info("Received stop signal, shutting down worker {} ".format(worker_number))
             shutdown_event.set()
         else:
             time.sleep(0.1)
 
-logging.info("Starting hypercorn worker in subinterpreter {}".format({worker_number}))
-_insecure_sockets = []
-# Rehydrate the sockets list from the tuple
-for s in insecure_sockets:
-    _insecure_sockets.append(socket(*s))
-hypercorn_sockets = Sockets([], _insecure_sockets, [])
+logging.info("Starting hypercorn worker {}".format({worker_number}))
+try:
+    _insecure_sockets = []
+    # Rehydrate the sockets list from the tuple
+    for s in insecure_sockets:
+        _insecure_sockets.append(socket(*s))
+    hypercorn_sockets = Sockets([], _insecure_sockets, [])
 
-config = Config()
-config.application_path = application_path
-config.workers = workers
-config.use_reloader = reload  # Doesn't really do anything here
-config.debug = log_level == logging.DEBUG
-thread = threading.Thread(target=wait_for_signal)
-thread.start()
+    config = Config()
+    config.application_path = application_path
+    config.workers = workers
+    config.use_reloader = reload  # Doesn't really do anything here
+    config.debug = log_level == logging.DEBUG
+    thread = threading.Thread(target=wait_for_signal)
+    thread.start()
+except Exception as e:
+    logging.exception(e)
+
 """
 
 worker_run = """
-logging.debug("Starting asyncio worker in subinterpreter {}".format({worker_number}))
-asyncio_worker(config, hypercorn_sockets, shutdown_event=shutdown_event)
-logging.debug("asyncio worker finished in subinterpreter {}".format({worker_number}))
+logging.debug("Starting asyncio worker in worker {}".format({worker_number}))
+try:
+    asyncio_worker(config, hypercorn_sockets, shutdown_event=shutdown_event)
+except Exception as e:
+    logging.exception(e)
+logging.debug("asyncio worker finished in worker {}".format({worker_number}))
 """
 
 
@@ -122,6 +129,7 @@ class SubinterpreterWorker(threading.Thread):
                 "log_level": self.log_level,
             },
         )
+        logger.debug("Initialized worker {}, interpreter {}. Launching asyncio_worker".format(self.worker_number, self.interp))
         interpreters.run_string(self.interp, worker_run)
         logger.debug("Worker {}, interpreter {} finished".format(self.worker_number, self.interp))
 
@@ -148,6 +156,14 @@ class SubinterpreterWorker(threading.Thread):
         if interpreters.is_running(self.interp):
             raise ValueError("Cannot destroy a running interpreter")
         interpreters.destroy(self.interp)
+
+def fill_pool(threads, min_workers):
+    for i in range(min_workers - len(threads)):
+        t = SubinterpreterWorker(
+            i, config, sockets, reload=args.reload, log_level=logger.level
+        )
+        t.start()
+        threads.append(t)
 
 if __name__ == "__main__":
     import argparse
@@ -180,6 +196,8 @@ if __name__ == "__main__":
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     config = Config()
     config.application_path = args.application
@@ -187,12 +205,7 @@ if __name__ == "__main__":
     sockets = config.create_sockets()
     logger.debug("Starting %s workers", args.workers)
     threads: list[SubinterpreterWorker] = []
-    for i in range(args.workers):
-        t = SubinterpreterWorker(
-            i, config, sockets, reload=args.reload, log_level=logger.level
-        )
-        t.start()
-        threads.append(t)
+    fill_pool(threads, args.workers)
 
     try:
         if args.reload:
@@ -204,6 +217,10 @@ if __name__ == "__main__":
             while active:
                 files = files_to_watch()
                 logger.debug(f"Watching files for changes")
+
+                # Fill thread pool to correct size of the number of interpreters
+                fill_pool(threads, args.workers)
+
                 while True:
                     updated = check_for_updates(files)
                     if updated:
@@ -213,7 +230,10 @@ if __name__ == "__main__":
                             t.request_stop()
 
                         for t in threads:
-                            t.join(timeout=3.0)
+                            t.stop(timeout=3.0)
+                            t.join()
+                            # t.destroy()
+                            threads.remove(t)
 
                         logger.debug("Finished reload cycle")
                         break
@@ -225,7 +245,7 @@ if __name__ == "__main__":
         for t in threads:
             t.request_stop()
         for t in threads:
-            t.join()
+            t.stop()
             # t.destroy()
 
     # Todo: destroy interpreters on recycle/reload
