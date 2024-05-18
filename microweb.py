@@ -16,10 +16,11 @@ import threading
 from hypercorn.config import Config, Sockets
 from hypercorn.utils import check_for_updates, files_to_watch, load_application
 from socket import dup
+from rich.logging import RichHandler
 import logging
 import os
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="[main] %(message)s", handlers=[RichHandler()])
 logger = logging.getLogger(__name__)
 
 
@@ -39,15 +40,6 @@ WORKERS = os.cpu_count() or 2
 """
 
 worker_init = open('interpreter_worker.py', 'r').read()
-
-worker_run = """
-logging.debug("Starting asyncio worker in worker {}".format({worker_number}))
-try:
-    asyncio_worker(config, hypercorn_sockets, shutdown_event=shutdown_event)
-except Exception as e:
-    logging.exception(e)
-logging.debug("asyncio worker finished in worker {}".format({worker_number}))
-"""
 
 
 class SubinterpreterWorker(threading.Thread):
@@ -86,8 +78,6 @@ class SubinterpreterWorker(threading.Thread):
                 "log_level": self.log_level,
             },
         )
-        logger.debug("Initialized worker {}, interpreter {}. Launching asyncio_worker".format(self.worker_number, self.interp))
-        interpreters.run_string(self.interp, worker_run)
         logger.debug("Worker {}, interpreter {} finished".format(self.worker_number, self.interp))
 
     def is_alive(self) -> bool:

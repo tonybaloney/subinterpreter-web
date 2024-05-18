@@ -4,10 +4,11 @@ import asyncio
 import threading
 import _interpchannels as channels
 from socket import socket
+from rich.logging import RichHandler
 import time
 import logging
 
-logging.basicConfig(level=log_level)
+logging.basicConfig(level=log_level, format=f"[{worker_number}] %(message)s", handlers=[RichHandler()])
 
 shutdown_event = asyncio.Event()
 shutdown_event.clear()
@@ -16,12 +17,12 @@ def wait_for_signal():
     while True:
         msg = channels.recv(channel_id, default=None)
         if msg == "stop":
-            logging.info("Received stop signal, shutting down worker {} ".format(worker_number))
+            logging.info("Received stop signal, shutting down")
             shutdown_event.set()
         else:
             time.sleep(0.1)
 
-logging.info("Starting hypercorn worker {}".format({worker_number}))
+logging.info("Starting hypercorn worker")
 try:
     _insecure_sockets = []
     # Rehydrate the sockets list from the tuple
@@ -38,3 +39,10 @@ try:
     thread.start()
 except Exception as e:
     logging.exception(e)
+
+logging.debug("Starting asyncio worker")
+try:
+    asyncio_worker(config, hypercorn_sockets, shutdown_event=shutdown_event)
+except Exception as e:
+    logging.exception(e)
+logging.debug("asyncio worker finished")
