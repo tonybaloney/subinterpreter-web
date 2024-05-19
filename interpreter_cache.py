@@ -14,8 +14,9 @@ class InterpreterCache:
         self.cache_channel_id = cache_channel_id
 
     def set(self, key: str, value: str):
-        self.cache[key] = memoryview(value)
-    
+        channels.send(self.cache_channel_id, ("set_entry", self.cache_channel_id, (key, value.encode("utf-8"))))
+        # TODO : RECV new memory view?
+
     def get(self, key: str) -> str | None:
         if key in self.cache:
             return self.cache[key].tobytes().decode("utf-8")
