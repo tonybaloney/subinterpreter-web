@@ -2,6 +2,9 @@ import threading
 import _interpchannels as channels
 from typing import Any
 
+type SetEntryMsg = tuple[str, bytes]
+type RecvMsg = tuple[str, int, Any]
+
 
 class InterpreterCache:
     cache: dict[str, memoryview]
@@ -13,8 +16,18 @@ class InterpreterCache:
     def set(self, key: str, value: str):
         self.cache[key] = memoryview(value)
     
-    def get(self, key: str) -> memoryview:
-        return self.cache[key]
+    def get(self, key: str) -> str | None:
+        if key in self.cache:
+            return self.cache[key].tobytes().decode("utf-8")
+        else:
+            # Try fetch cache record
+            channels.send(self.cache_channel_id, ("get_entry", self.cache_channel_id, key))
+            v = channels.recv(self.cache_channel_id, default=None)
+            if v:
+                self.cache[key] = v
+                return v.tobytes().decode("utf-8")
+            else:
+                return None
 
     def reset(self):
         self.cache = {}
@@ -33,7 +46,6 @@ class MainInterpreterCachePoller(threading.Thread):
         while self.running:
             v = channels.recv(self.cache_channel_id, default=None)
             if v:
-                type RecvMsg = tuple[str, int, Any]
                 msg: RecvMsg = v
                 if msg[0] == "get_entry":
                     if msg[2] in self.cache:
@@ -48,4 +60,4 @@ class MainInterpreterCachePoller(threading.Thread):
                 else:
                     raise ValueError("Unknown message type")
 
-cache = None
+cache: InterpreterCache = None
