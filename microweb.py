@@ -15,6 +15,7 @@ import _interpchannels as channels
 import threading
 from hypercorn.config import Config, Sockets
 from hypercorn.utils import check_for_updates, files_to_watch, load_application
+from interpreter_cache import MainInterpreterCachePoller
 from socket import dup
 from rich.logging import RichHandler
 import logging
@@ -49,6 +50,7 @@ class SubinterpreterWorker(threading.Thread):
         number: int,
         config: Config,
         sockets: Sockets,
+        cache_channel_id: int,
         reload: bool = False,
         log_level: int = logging.INFO,
     ):
@@ -58,6 +60,7 @@ class SubinterpreterWorker(threading.Thread):
         self.config = config  # TODO copy other parameters from config
         self.sockets = sockets
         self.use_reloader = reload
+        self.cache_channel_id = cache_channel_id
         self.log_level = log_level
         super().__init__(target=self.run, daemon=True)
 
@@ -76,6 +79,7 @@ class SubinterpreterWorker(threading.Thread):
                 "channel_id": self.channel,
                 "reload": self.use_reloader,
                 "log_level": self.log_level,
+                "cache_channel_id": self.cache_channel_id,
             },
         )
         logger.debug("Worker {}, interpreter {} finished".format(self.worker_number, self.interp))
@@ -104,10 +108,10 @@ class SubinterpreterWorker(threading.Thread):
             raise ValueError("Cannot destroy a running interpreter")
         interpreters.destroy(self.interp)
 
-def fill_pool(threads, config, min_workers, sockets):
+def fill_pool(threads, config, min_workers, sockets, cache_channel_id):
     for i in range(min_workers - len(threads)):
         t = SubinterpreterWorker(
-            i, config, sockets, reload=args.reload, log_level=logger.level
+            i, config, sockets, cache_channel_id, reload=args.reload, log_level=logger.level
         )
         t.start()
         threads.append(t)
@@ -151,8 +155,11 @@ if __name__ == "__main__":
     config.workers = args.workers
     sockets = config.create_sockets()
     logger.debug("Starting %s workers", args.workers)
+
+    cache_poller = MainInterpreterCachePoller()
+    cache_poller.start()
     threads: list[SubinterpreterWorker] = []
-    fill_pool(threads, config, args.workers, sockets)
+    fill_pool(threads, config, args.workers, sockets, cache_poller.cache_channel_id)
 
     try:
         if args.reload:
@@ -166,7 +173,7 @@ if __name__ == "__main__":
                 logger.debug(f"Watching files for changes")
 
                 # Fill thread pool to correct size of the number of interpreters
-                fill_pool(threads, config, args.workers, sockets)
+                fill_pool(threads, config, args.workers, sockets, cache_poller.cache_channel_id)
 
                 while True:
                     updated = check_for_updates(files)

@@ -5,6 +5,7 @@ import threading
 import _interpchannels as channels
 from socket import socket
 from rich.logging import RichHandler
+import interpreter_cache
 import time
 import logging
 
@@ -12,6 +13,8 @@ logging.basicConfig(level=log_level, format=f"[{worker_number}] %(message)s", ha
 logger = logging.getLogger(__name__)
 shutdown_event = asyncio.Event()
 shutdown_event.clear()
+
+interpreter_cache.cache = interpreter_cache.InterpreterCache(cache_channel_id)
 
 def wait_for_signal():
     while True:

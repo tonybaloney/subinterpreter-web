@@ -4,12 +4,13 @@ from flask_app.models import db, User
 from rich.progress import track
 import mimesis
 import concurrent.futures
-
+from interpreter_cache import cache
 
 SEED_USERS = 1_000
 
 app = Flask(__name__, template_folder="flask_app/templates")
 
+assert cache is not None
 
 @app.route("/")
 def index():
