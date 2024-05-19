@@ -9,7 +9,7 @@ import time
 import logging
 
 logging.basicConfig(level=log_level, format=f"[{worker_number}] %(message)s", handlers=[RichHandler()])
-
+logger = logging.getLogger(__name__)
 shutdown_event = asyncio.Event()
 shutdown_event.clear()
 
@@ -35,6 +35,7 @@ try:
     config.workers = workers
     config.use_reloader = reload  # Doesn't really do anything here
     config.debug = log_level == logging.DEBUG
+    config.accesslog = logger
     thread = threading.Thread(target=wait_for_signal)
     thread.start()
 except Exception as e:
