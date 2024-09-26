@@ -1,4 +1,4 @@
-from hypercorn.asyncio.run import asyncio_worker  # type: ignore
+from hypercorn.asyncio.run import asyncio_worker
 from hypercorn.config import Config, Sockets
 import asyncio
 import threading
@@ -8,6 +8,17 @@ from rich.logging import RichHandler
 import interpreter_cache
 import time
 import logging
+from typing import Any
+
+# Variables from host interpreter
+log_level: int
+worker_number: int
+channel_id: int
+cache_channel_id: int
+insecure_sockets: tuple[tuple[int, int, Any, int], ...]
+application_path: str
+workers: int
+reload: bool
 
 logging.basicConfig(level=log_level, format=f"[{worker_number}] %(message)s", handlers=[RichHandler()])
 logger = logging.getLogger(__name__)
