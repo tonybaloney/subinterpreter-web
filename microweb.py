@@ -156,7 +156,7 @@ if __name__ == "__main__":
     sockets = config.create_sockets()
     logger.debug("Starting %s workers", args.workers)
 
-    cache_poller = MainInterpreterCachePoller()
+    cache_poller = MainInterpreterCachePoller(logger)
     cache_poller.start()
     threads: list[SubinterpreterWorker] = []
     fill_pool(threads, config, args.workers, sockets, cache_poller.cache_channel_id)

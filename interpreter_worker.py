@@ -26,7 +26,7 @@ shutdown_event = asyncio.Event()
 shutdown_event.clear()
 recv_channel = channels.RecvChannel(channel_id)
 
-interpreter_cache.cache = interpreter_cache.InterpreterCache(cache_channel_id)
+interpreter_cache.cache = interpreter_cache.InterpreterCache(cache_channel_id, logger)
 
 def wait_for_signal():
     while True:
