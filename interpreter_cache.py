@@ -1,5 +1,5 @@
 import threading
-import _interpchannels as channels
+import test.support.interpreters.channels as channels
 from typing import Any
 
 type SetEntryMsg = tuple[str, bytes]
@@ -12,9 +12,11 @@ class InterpreterCache:
     def __init__(self, cache_channel_id: int):
         self.cache = {}
         self.cache_channel_id = cache_channel_id
+        self.send_channel = channels.SendChannel(cache_channel_id)
+        self.recv_channel = channels.RecvChannel(cache_channel_id)
 
     def set(self, key: str, value: str):
-        channels.send(self.cache_channel_id, ("set_entry", self.cache_channel_id, (key, value.encode("utf-8"))))
+        self.send_channel.send(("set_entry", self.cache_channel_id, (key, value.encode("utf-8"))))
         # TODO : RECV new memory view?
 
     def get(self, key: str) -> str | None:
@@ -22,8 +24,8 @@ class InterpreterCache:
             return self.cache[key].tobytes().decode("utf-8")
         else:
             # Try fetch cache record
-            channels.send(self.cache_channel_id, ("get_entry", self.cache_channel_id, key))
-            v = channels.recv(self.cache_channel_id, default=None)
+            self.send_channel.send(("get_entry", self.cache_channel_id, key))
+            v = self.recv_channel.recv_nowait(default=None)
             if v:
                 self.cache[key] = v
                 return v.tobytes().decode("utf-8")
@@ -39,20 +41,22 @@ class MainInterpreterCachePoller(threading.Thread):
 
     def __init__(self):
         self.cache = {}
-        self.cache_channel_id = channels.create()
+        self.recv_channel, _ = channels.create()
+        self.cache_channel_id = self.recv_channel.id
         super().__init__(target=self.run, daemon=True)
     
     def run(self):
         self.running = True
         while self.running:
-            v = channels.recv(self.cache_channel_id, default=None)
+            v = self.recv_channel.recv_nowait(default=None)
             if v:
                 msg: RecvMsg = v
                 if msg[0] == "get_entry":
+                    send_channel = channels.SendChannel(msg[1])
                     if msg[2] in self.cache:
-                        channels.send(msg[1], self.cache[msg[2]])
+                        send_channel.send(self.cache[msg[2]])
                     else:
-                        channels.send(msg[1], None)
+                        send_channel.send(None)
                 elif msg[0] == "set_entry":
                     key, value = msg[2]
                     self.cache[key] = memoryview(value)

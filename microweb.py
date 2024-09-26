@@ -11,7 +11,7 @@ Have successfully run the following apps:
 
 from time import sleep, time
 import _interpreters as interpreters
-import _interpchannels as channels
+import test.support.interpreters.channels as channels
 import threading
 from hypercorn.config import Config, Sockets
 from hypercorn.utils import check_for_updates, files_to_watch, load_application
@@ -56,7 +56,7 @@ class SubinterpreterWorker(threading.Thread):
     ):
         self.worker_number = number
         self.interp = interpreters.create()
-        self.channel = channels.create()
+        self.recv_channel, self.send_channel = channels.create()
         self.config = config  # TODO copy other parameters from config
         self.sockets = sockets
         self.use_reloader = reload
@@ -76,7 +76,7 @@ class SubinterpreterWorker(threading.Thread):
                 "insecure_sockets": tuple(insecure_sockets),
                 "application_path": self.config.application_path,
                 "workers": self.config.workers,
-                "channel_id": self.channel,
+                "channel_id": self.send_channel.id,
                 "reload": self.use_reloader,
                 "log_level": self.log_level,
                 "cache_channel_id": self.cache_channel_id,
@@ -89,7 +89,7 @@ class SubinterpreterWorker(threading.Thread):
 
     def request_stop(self):
         logger.info("Sending stop signal to worker {}, interpreter {}".format(self.worker_number, self.interp))
-        channels.send(self.channel, "stop", blocking=False)
+        self.send_channel.send_nowait("stop")
 
     def stop(self, timeout: float = 5.0):
         if self.is_alive():

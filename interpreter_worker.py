@@ -2,7 +2,7 @@ from hypercorn.asyncio.run import asyncio_worker
 from hypercorn.config import Config, Sockets
 import asyncio
 import threading
-import _interpchannels as channels
+import test.support.interpreters.channels as channels
 from socket import socket
 from rich.logging import RichHandler
 import interpreter_cache
@@ -24,12 +24,13 @@ logging.basicConfig(level=log_level, format=f"[{worker_number}] %(message)s", ha
 logger = logging.getLogger(__name__)
 shutdown_event = asyncio.Event()
 shutdown_event.clear()
+recv_channel = channels.RecvChannel(channel_id)
 
 interpreter_cache.cache = interpreter_cache.InterpreterCache(cache_channel_id)
 
 def wait_for_signal():
     while True:
-        msg = channels.recv(channel_id, default=None)
+        msg = recv_channel.recv_nowait(default=None)
         if msg == "stop":
             logging.info("Received stop signal, shutting down")
             shutdown_event.set()
