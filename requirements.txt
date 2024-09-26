@@ -1,8 +1,6 @@
 flask
 django
-# fastapi doesn't compile - orjson pydantic-core httptools uvloop
-# older versions work
-fastapi==0.99.0
+fastapi
 hypercorn
 peewee # only ORM I can find that compiles
 mimesis
