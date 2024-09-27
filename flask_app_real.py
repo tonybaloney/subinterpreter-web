@@ -4,7 +4,7 @@ from flask_app.models import db, User
 from rich.progress import track
 import mimesis
 import concurrent.futures
-
+from interpreter_cache import cache
 
 SEED_USERS = 1_000
 
@@ -48,6 +48,9 @@ def calculate_star_sign(user: User) -> tuple[User, str]:
 
 @app.route("/users")
 def user_list():
+    if cache_value := cache.get("/users"):
+        return cache_value
+
     users = User.select()
     enriched_users = []
     # We can use a with statement to ensure threads are cleaned up promptly
@@ -60,7 +63,9 @@ def user_list():
             user.star_sign = sign
             enriched_users.append(user)
 
-    return render_template("list.html", users=enriched_users)
+    result = render_template("list.html", users=enriched_users)
+    cache.set("/users", result)
+    return result
 
 
 def seed():
